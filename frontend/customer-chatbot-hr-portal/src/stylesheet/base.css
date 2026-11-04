@@ -1,0 +1,33 @@
+:root {
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #242d3c;
+  background: #f7f8fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  --ink: #242d3c;
+  --muted: #8a93a2;
+  --line: #e9ebf0;
+  --orange: #e8792f;
+  --orange-dark: #ca5d1b;
+  --peach: #fff1e6;
+  --green: #41ae85;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, textarea { font: inherit; }
+button { color: inherit; }
+a { color: inherit; text-decoration: none; }
+
+.brand { display: flex; align-items: center; gap: 11px; }
+.brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: white; background: linear-gradient(145deg, #f8a052, #e46a24); box-shadow: 0 5px 12px #e8792f38; }
+.brand-mark svg { width: 27px; height: 27px; }
+.brand-copy { display: grid; gap: 3px; }
+.brand-copy strong { font: 700 14px "Segoe UI", Arial, sans-serif; letter-spacing: -.3px; }
+.brand-copy > span { color: #a0a5b1; font-size: 9px; font-weight: 700; letter-spacing: 1.35px; }
+.brand-compact .brand-mark { width: 32px; height: 32px; border-radius: 11px; }
+

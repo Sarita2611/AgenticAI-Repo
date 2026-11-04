@@ -1,0 +1,60 @@
+@media (max-width: 900px) {
+  .login-topbar { padding: 0 5%; }
+  .login-panel { width: min(420px, calc(100% - 48px)); }
+}
+@media (max-width: 700px) {
+  .login-page { padding: 0 5%; }
+  .login-topbar { height: 72px; }
+  .login-topbar { flex-basis: 72px; padding: 0; }
+  .login-content { flex: initial; width: 100%; min-height: 0; display: block; max-width: 430px; margin: auto; padding: 47px 0 38px; }
+  .login-art { height: 175px; margin: 0 auto 34px; border-radius: 15px; }
+  .photo-bubble { border-width: 4px; }
+  .photo-bubble-one { top: 10px; left: -20px; width: 132px; }
+  .photo-bubble-two { top: 2px; right: -5px; width: 112px; }
+  .photo-bubble-three { bottom: -28px; left: 28%; width: 105px; }
+  .photo-bubble-four { display: none; }
+  .photo-message { top: 54%; left: 50%; width: min(220px, 65%); gap: 4px; padding: 10px 12px; border-radius: 10px; }
+  .photo-message span { font-size: 7px; }
+  .photo-message strong { font-size: 12px; }
+  .photo-credit { right: 5px; bottom: 3px; color: #505763; font-size: 7px; }
+  .login-panel { width: 100%; min-height: 610px; }
+  .login-panel h1 { font-size: 39px; }
+  .login-footer { gap: 10px; font-size: 9px; }
+  .sidebar { width: 64px; align-items: center; padding: 19px 8px 11px; }
+  .sidebar > .brand { padding: 0; }
+  .sidebar .brand-copy, .sidebar-label, .side-nav:not(.active)::after, .side-nav { font-size: 0; }
+  .side-nav { width: 42px; justify-content: center; padding: 0; margin-top: 37px; }
+  .side-nav .nav-icon { font-size: 17px; }
+  .side-nav .nav-indicator { right: 4px; }
+  .sidebar-note, .sidebar-bottom > a, .profile-name, .logout-button { display: none; }
+  .sidebar-bottom { margin-top: auto; }
+  .profile { border: 0; padding: 0; }
+  .chat-main { width: calc(100% - 64px); margin-left: 64px; }
+  .chat-header { padding: 0 18px; }
+  .header-account { gap: 10px; }
+  .header-user { gap: 6px; padding-left: 9px; font-size: 10px; }
+  .header-user > span:last-child { max-width: 82px; }
+  .header-user .avatar-small { flex-basis: 25px; width: 25px; height: 25px; }
+  .welcome { padding: 42px 21px 24px; }
+  .welcome h1 { font-size: 29px; }
+  .prompt-grid { grid-template-columns: 1fr; gap: 8px; margin-top: 25px; }
+  .prompt-card { min-height: 75px; padding: 12px 12px 12px 43px; }
+  .prompt-icon { position: absolute; left: 14px; top: 13px; }
+  .prompt-card strong { padding-top: 2px; }
+  .message-list { padding: 27px 18px; }
+  .composer-wrap { padding: 12px 14px 17px; }
+  .composer-caption { font-size: 8px; }
+  .header-status { font-size: 0; }
+  .header-status .status-dot { margin: 0; }
+}
+@media (max-width: 390px) {
+  .login-page { padding: 0 20px; }
+  .brand-copy strong { font-size: 12px; }
+  .docs-link { font-size: 10px; }
+  .login-footer span:last-child { text-align: right; }
+  .breadcrumb span { display: none; }
+  .breadcrumb b { margin-left: 0; }
+  .chat-header { padding: 0 12px; }
+  .header-user > span:last-child { max-width: 70px; }
+  .composer-caption span:last-child { display: none; }
+}

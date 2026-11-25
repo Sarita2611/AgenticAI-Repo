@@ -4,6 +4,44 @@ import { API_URL, apiRequest } from "./api.js";
 import "./style.css";
 
 const ADMIN_STORAGE_KEY = "hr-chatbot-demo-admin";
+const policyPagesPattern =
+  /\n\nSource: HR Policy Manual 2023\.pdf \(pages: ([\d, ]+)\)$/;
+
+function getHistoryMessage(content) {
+  const citation = content.match(policyPagesPattern);
+  return {
+    content: citation ? content.slice(0, citation.index) : content,
+    sourcePages: citation
+      ? citation[1]
+          .split(",")
+          .map((page) => page.trim())
+          .filter(Boolean)
+      : [],
+  };
+}
+
+function HistoryMessage({ message }) {
+  const displayMessage = getHistoryMessage(message.content);
+
+  return (
+    <li className={`history-message ${message.role}`} key={message.id}>
+      <div className="message-meta">
+        <strong>{message.role}</strong>
+        <time dateTime={message.created_at}>
+          {new Date(message.created_at).toLocaleString()}
+        </time>
+      </div>
+      <p>{displayMessage.content}</p>
+      {displayMessage.sourcePages.length > 0 && (
+        <small className="message-source">
+          Source: HR Policy Manual 2023.pdf · page
+          {displayMessage.sourcePages.length > 1 ? "s" : ""}{" "}
+          {displayMessage.sourcePages.join(", ")}
+        </small>
+      )}
+    </li>
+  );
+}
 
 function getInitialAdminName() {
   const url = new URL(window.location.href);
@@ -549,15 +587,7 @@ function AdminDashboard({ adminName, onLogout }) {
             ) : (
               <ol className="message-history">
                 {history.map((message) => (
-                  <li className={`history-message ${message.role}`} key={message.id}>
-                    <div className="message-meta">
-                      <strong>{message.role}</strong>
-                      <time dateTime={message.created_at}>
-                        {new Date(message.created_at).toLocaleString()}
-                      </time>
-                    </div>
-                    <p>{message.content}</p>
-                  </li>
+                  <HistoryMessage key={message.id} message={message} />
                 ))}
               </ol>
             )}

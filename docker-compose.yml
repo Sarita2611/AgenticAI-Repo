@@ -26,6 +26,12 @@ services:
         required: false
     environment:
       DATABASE_URL: postgresql+psycopg2://user:password@db:5432/pn_learn
+      RAG_DOCUMENT_PATH: /app/data/HR Policy Manual 2023.pdf
+    volumes:
+      - type: bind
+        source: "${USERPROFILE}/Desktop/HR Policy Manual 2023.pdf"
+        target: /app/data/HR Policy Manual 2023.pdf
+        read_only: true
     depends_on:
       db:
         condition: service_healthy

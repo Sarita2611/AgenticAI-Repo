@@ -46,9 +46,7 @@ export default function ChatPage({ user, onLogout }) {
     }
   }, [messages, busy]);
 
-  async function sendMessage(event) {
-    event.preventDefault();
-    const content = message.trim();
+  async function submitMessage(content) {
     if (!content || busy) return;
 
     const optimisticId = crypto.randomUUID();
@@ -80,6 +78,11 @@ export default function ChatPage({ user, onLogout }) {
     }
   }
 
+  async function sendMessage(event) {
+    event.preventDefault();
+    await submitMessage(message.trim());
+  }
+
   return (
     <div className="app-shell">
       <ChatSidebar displayName={displayName} onLogout={onLogout} />
@@ -99,6 +102,7 @@ export default function ChatPage({ user, onLogout }) {
               displayName={displayName}
               busy={busy}
               feedRef={feedRef}
+              onQuickReply={submitMessage}
             />
           )}
         </section>

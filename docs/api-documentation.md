@@ -28,7 +28,15 @@ Example chat request:
 ```
 
 The response contains `reply` and `message_id`. Chat requests return `503` if
-`OPENAI_API_KEY` is not configured and `502` if the provider request fails.
+`OPENAI_API_KEY` is not configured and `502` if document retrieval, embedding,
+or the model request fails. RAG uses `HR Policy Manual 2023.pdf`, found on the
+current user's Desktop by default; override this with `RAG_DOCUMENT_PATH`, a
+local filesystem path or `file:///` URI. Replies are grounded only in the
+manual; if no supporting information is retrieved, the assistant explicitly
+says the manual does not provide it and offers an optional web search. Web
+search runs only after user confirmation; its answer is labeled as general
+information and includes source URLs. Manual-supported answers include their
+source page numbers, displayed in small text in the customer chat.
 
 ## Existing learning and CRUD examples
 

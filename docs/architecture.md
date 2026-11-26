@@ -5,8 +5,9 @@
 - `backend/app/main.py` creates the FastAPI application, configures CORS, and
   initializes SQLModel tables when the API starts.
 - `backend/api/` contains the HTTP routes for users, chat, heroes, greetings,
-  and learning topics.
-- `backend/models/schemas.py` defines SQLModel database tables and API schemas.
+  learning topics, and RAG evaluation.
+- `backend/models/schemas.py` defines SQLModel database tables and API schemas,
+  including evaluation datasets, runs, and per-question results.
 - `backend/app/database.py` creates the SQLAlchemy engine and request-scoped
   database sessions from `DATABASE_URL`.
 - `backend/services/chat_service.py` loads the HR policy PDF, splits and embeds
@@ -16,7 +17,7 @@
   explicit service errors.
 - `frontend/customer-chatbot-hr-portal/` is the responsive React chatbot UI.
 - `frontend/admin-panel/` is a username-gated demo console for user/hero CRUD,
-  chat history, and direct Swagger access.
+  RAG evaluation, chat history, and direct Swagger access.
 
 The API is the shared boundary for the frontends. The customer portal uses
 username-only demo login; the admin starter has no authentication or
@@ -34,7 +35,10 @@ authorization and is not suitable for production.
    If the retrieved manual context cannot answer, the service asks permission
    before performing a general web search and summarizing its results.
 4. The admin console calls the user and hero CRUD endpoints and reads
-   `/chat/history/{user_id}`. Swagger at `/docs` remains available for trying
+   `/chat/history/{user_id}`. Its evaluation dashboard supports labeled
+   dataset creation, run comparisons, and per-question retrieved-context
+   inspection. Retrieval scores use relevant chunk IDs; answer scores are
+   produced by an LLM judge. Swagger at `/docs` remains available for trying
    any other API operation.
 
 ## Configuration and runtime

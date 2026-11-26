@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { API_URL, apiRequest } from "./api.js";
+import EvaluationDashboard from "./components/EvaluationDashboard.jsx";
 import "./style.css";
 
 const ADMIN_STORAGE_KEY = "hr-chatbot-demo-admin";
@@ -85,10 +86,6 @@ function AdminLogin({ onLogin }) {
         <p className="intro">
           Enter an admin display name to open the local service console.
         </p>
-        <aside className="notice" role="note">
-          Demo only: this username screen does not authenticate or authorize
-          access. The backend currently has no admin accounts or roles.
-        </aside>
         <form className="form-grid" onSubmit={submit}>
           <label htmlFor="admin-username">Admin username</label>
           <input
@@ -117,7 +114,7 @@ function AdminLogin({ onLogin }) {
 }
 
 function AdminDashboard({ adminName, onLogout }) {
-  const [activeTab, setActiveTab] = useState("users");
+  const [activeTab, setActiveTab] = useState("evaluation");
   const [users, setUsers] = useState([]);
   const [heroes, setHeroes] = useState([]);
   const [history, setHistory] = useState([]);
@@ -341,13 +338,15 @@ function AdminDashboard({ adminName, onLogout }) {
           endpoints directly in FastAPI Swagger.
         </p>
 
-        <aside className="notice" role="note">
-          Demo only: the username sign-in is a local screen, not backend
-          authentication. These endpoints currently have no admin authorization.
-          Do not expose this console or API publicly.
-        </aside>
-
         <nav className="tabs" aria-label="Admin services">
+          <button
+            aria-current={activeTab === "evaluation" ? "page" : undefined}
+            className={activeTab === "evaluation" ? "tab active" : "tab"}
+            onClick={() => { clearFeedback(); setActiveTab("evaluation"); }}
+            type="button"
+          >
+            Evaluation
+          </button>
           <button
             aria-current={activeTab === "users" ? "page" : undefined}
             className={activeTab === "users" ? "tab active" : "tab"}
@@ -376,6 +375,8 @@ function AdminDashboard({ adminName, onLogout }) {
 
         {error && <p className="feedback error" role="alert">{error}</p>}
         {notice && <p className="feedback success" role="status">{notice}</p>}
+
+        {activeTab === "evaluation" && <EvaluationDashboard />}
 
         {activeTab === "users" && (
           <section className="workspace-grid">

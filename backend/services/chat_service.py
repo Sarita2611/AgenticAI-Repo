@@ -1,3 +1,4 @@
+import hashlib
 import os
 from functools import lru_cache
 from operator import itemgetter
@@ -17,7 +18,18 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 DEFAULT_DOCUMENT_PATH = Path.home() / "Desktop" / "HR Policy Manual 2023.pdf"
+RAG_CHUNK_SIZE = 1000
+RAG_CHUNK_OVERLAP = 200
+RAG_TOP_K = 4
+RAG_MODEL_NAME = "gpt-4o-mini"
+RAG_EMBEDDING_MODEL = "text-embedding-3-small"
+RAG_PROMPT_VERSION = "hr-rag-v1"
 REFUSAL_RESPONSE = "The HR Policy Manual does not provide this information."
+HR_SYSTEM_PROMPT = (
+    "You are the Head of Human Resources at a professional organization. "
+    "Respond politely, constructively, and empathetically, maintaining "
+    "professionalism and alignment with organizational policies and workplace etiquette."
+)
 WEB_SEARCH_OFFER = (
     "Would you like me to search the web for a general answer? Reply yes or no."
 )
@@ -165,7 +177,7 @@ def _resolve_document_path(configured_path: str | None) -> Path:
 
 
 @lru_cache(maxsize=1)
-def _get_rag_chain() -> tuple[BaseRetriever, Runnable[dict[str, str], str]]:
+def _load_rag_chunks() -> tuple[Document, ...]:
     document_path = _resolve_document_path(os.getenv("RAG_DOCUMENT_PATH"))
     if not document_path.is_file():
         raise ChatServiceError("The configured HR policy PDF could not be found.")
@@ -175,18 +187,49 @@ def _get_rag_chain() -> tuple[BaseRetriever, Runnable[dict[str, str], str]]:
         raise ChatServiceError("The configured HR policy PDF contains no pages.")
 
     splits = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=RAG_CHUNK_SIZE,
+        chunk_overlap=RAG_CHUNK_OVERLAP,
     ).split_documents(documents)
     if not splits:
         raise ChatServiceError("The configured HR policy PDF contains no text.")
 
+    for split in splits:
+        page = split.metadata.get("page", 0)
+        page_number = page + 1 if isinstance(page, int) else 1
+        chunk_hash = hashlib.sha256(
+            f"{page_number}\0{split.page_content}".encode("utf-8")
+        ).hexdigest()[:16]
+        split.metadata["chunk_id"] = f"hr-policy-p{page_number}-{chunk_hash}"
+    return tuple(splits)
+
+
+def get_rag_chunks() -> list[Document]:
+    return list(_load_rag_chunks())
+
+
+def get_rag_configuration() -> dict[str, str | int]:
+    return {
+        "model_name": RAG_MODEL_NAME,
+        "embedding_model": RAG_EMBEDDING_MODEL,
+        "prompt_version": RAG_PROMPT_VERSION,
+        "chunk_size": RAG_CHUNK_SIZE,
+        "top_k": RAG_TOP_K,
+    }
+
+
+@lru_cache(maxsize=1)
+def _get_rag_pipeline() -> tuple[
+    BaseRetriever,
+    Runnable[dict[str, str], str],
+    tuple[Document, ...],
+]:
+    chunks = _load_rag_chunks()
     vectorstore = Chroma.from_documents(
-        documents=splits,
-        embedding=OpenAIEmbeddings(),
+        documents=list(chunks),
+        embedding=OpenAIEmbeddings(model=RAG_EMBEDDING_MODEL),
     )
-    retriever = vectorstore.as_retriever()
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    retriever = vectorstore.as_retriever(search_kwargs={"k": RAG_TOP_K})
+    llm = ChatOpenAI(model=RAG_MODEL_NAME, temperature=0)
 
     answer_chain = (
         {
@@ -199,7 +242,31 @@ def _get_rag_chain() -> tuple[BaseRetriever, Runnable[dict[str, str], str]]:
         | llm
         | StrOutputParser()
     )
-    return retriever, answer_chain
+    return retriever, answer_chain, chunks
+
+
+def answer_from_manual(
+    question: str,
+    history: str = "",
+    system_prompt: str = "You are a helpful assistant.",
+) -> tuple[str, list[Document]]:
+    if not os.getenv("OPENAI_API_KEY"):
+        raise ChatServiceNotConfigured("OPENAI_API_KEY is not configured.")
+
+    retriever, answer_chain, _ = _get_rag_pipeline()
+    documents = retriever.invoke(question)
+    if not documents:
+        return REFUSAL_RESPONSE, []
+
+    answer = answer_chain.invoke(
+        {
+            "question": question,
+            "history": history,
+            "system_prompt": system_prompt,
+            "context": format_docs(documents),
+        }
+    )
+    return answer, documents
 
 
 def generate_reply(messages: list[ChatMessageInput]) -> str:
@@ -243,18 +310,10 @@ def generate_reply(messages: list[ChatMessageInput]) -> str:
     )
 
     try:
-        retriever, answer_chain = _get_rag_chain()
-        documents = retriever.invoke(messages[latest_user_index]["content"])
-        if not documents:
-            return _refusal_with_search_offer()
-
-        reply = answer_chain.invoke(
-            {
-                "question": messages[latest_user_index]["content"],
-                "history": conversation_history,
-                "system_prompt": system_prompt,
-                "context": format_docs(documents),
-            }
+        reply, documents = answer_from_manual(
+            messages[latest_user_index]["content"],
+            history=conversation_history,
+            system_prompt=system_prompt,
         )
     except Exception as error:
         raise ChatServiceError(f"RAG chat service error: {error}") from error

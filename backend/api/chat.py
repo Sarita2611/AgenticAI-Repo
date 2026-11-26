@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 from app.database import get_session
 from models import ChatMessage, ChatRequest, ChatResponse, User
 from services.chat_service import (
+    HR_SYSTEM_PROMPT,
     ChatMessageInput,
     ChatServiceError,
     ChatServiceNotConfigured,
@@ -13,12 +14,6 @@ from services.chat_service import (
 )
 
 router = APIRouter(prefix="/chat", tags=["HR Chatbot"])
-
-HR_SYSTEM_PROMPT = (
-    "You are the Head of Human Resources at a professional organization. "
-    "Respond politely, constructively, and empathetically, maintaining "
-    "professionalism and alignment with organizational policies and workplace etiquette."
-)
 
 
 @router.post("/", response_model=ChatResponse, status_code=status.HTTP_200_OK)

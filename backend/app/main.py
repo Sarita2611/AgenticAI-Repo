@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api import chat, greet, heroes, learn, users
+from api import chat, evaluations, greet, heroes, learn, users
 from app.database import create_db_and_tables
 from models import schemas as _schemas
 
@@ -41,6 +41,7 @@ app.include_router(learn.router)
 app.include_router(heroes.router)
 app.include_router(users.router)
 app.include_router(chat.router)
+app.include_router(evaluations.router)
 
 
 @app.get("/", tags=["Root"])

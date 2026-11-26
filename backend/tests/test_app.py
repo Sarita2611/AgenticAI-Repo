@@ -25,6 +25,9 @@ def test_chat_and_user_routes_are_documented():
     assert "/users/login" in schema["paths"]
     assert "/chat/" in schema["paths"]
     assert "/chat/history/{user_id}" in schema["paths"]
+    assert "/evaluation/dashboard" in schema["paths"]
+    assert "/evaluation/dataset" in schema["paths"]
+    assert "/evaluation/runs" in schema["paths"]
 
 
 def test_admin_development_origin_is_allowed():

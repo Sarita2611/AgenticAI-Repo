@@ -17,23 +17,18 @@ def test_generate_reply_passes_latest_question_and_history(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     received = {}
 
-    class FakeRetriever:
-        def invoke(self, question):
-            return [
-                Document(page_content="Policy answer", metadata={"page": 1}),
-                Document(page_content="More policy", metadata={"page": 4}),
-            ]
+    def fake_answer(question, history, system_prompt):
+        received.update(
+            question=question,
+            history=history,
+            system_prompt=system_prompt,
+        )
+        return "The policy answer.", [
+            Document(page_content="Policy answer", metadata={"page": 1}),
+            Document(page_content="More policy", metadata={"page": 4}),
+        ]
 
-    class FakeChain:
-        def invoke(self, inputs):
-            received.update(inputs)
-            return "The policy answer."
-
-    monkeypatch.setattr(
-        chat_service,
-        "_get_rag_chain",
-        lambda: (FakeRetriever(), FakeChain()),
-    )
+    monkeypatch.setattr(chat_service, "answer_from_manual", fake_answer)
 
     reply = chat_service.generate_reply(
         [
@@ -52,25 +47,19 @@ def test_generate_reply_passes_latest_question_and_history(monkeypatch):
         "question": "Current question",
         "history": "user: Earlier question\nassistant: Earlier answer",
         "system_prompt": "HR system instructions",
-        "context": "Page 2:\nPolicy answer\n\nPage 5:\nMore policy",
     }
 
 
 def test_generate_reply_refuses_when_no_document_pages_are_retrieved(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
-    class FakeRetriever:
-        def invoke(self, question):
-            return []
-
-    class FakeChain:
-        def invoke(self, inputs):
-            raise AssertionError("The LLM must not be called without retrieved pages.")
-
     monkeypatch.setattr(
         chat_service,
-        "_get_rag_chain",
-        lambda: (FakeRetriever(), FakeChain()),
+        "answer_from_manual",
+        lambda question, history, system_prompt: (
+            chat_service.REFUSAL_RESPONSE,
+            [],
+        ),
     )
 
     reply = chat_service.generate_reply(
@@ -201,21 +190,19 @@ def test_rag_chain_uses_retrieved_document_context(monkeypatch, tmp_path: Path):
             ]
 
     class FakeVectorStore:
-        def as_retriever(self):
-            return RunnableLambda(
-                lambda question: [
-                    Document(
-                        page_content="Annual leave allowance is 20 days.",
-                        metadata={"page": 6},
-                    )
-                ]
-            )
+        def __init__(self, documents):
+            self.documents = documents
+
+        def as_retriever(self, **kwargs):
+            assert kwargs == {"search_kwargs": {"k": chat_service.RAG_TOP_K}}
+            return RunnableLambda(lambda question: self.documents)
 
     class FakeChroma:
         @staticmethod
         def from_documents(documents, embedding):
             assert documents
-            return FakeVectorStore()
+            assert documents[0].metadata["chunk_id"].startswith("hr-policy-p7-")
+            return FakeVectorStore(documents)
 
     def fake_llm(prompt):
         captured_prompt["text"] = prompt.to_string()
@@ -224,16 +211,21 @@ def test_rag_chain_uses_retrieved_document_context(monkeypatch, tmp_path: Path):
     monkeypatch.setenv("RAG_DOCUMENT_PATH", str(document))
     monkeypatch.setattr(chat_service, "PyPDFLoader", FakeLoader)
     monkeypatch.setattr(chat_service, "Chroma", FakeChroma)
-    monkeypatch.setattr(chat_service, "OpenAIEmbeddings", lambda: object())
+    monkeypatch.setattr(
+        chat_service,
+        "OpenAIEmbeddings",
+        lambda **kwargs: object(),
+    )
     monkeypatch.setattr(
         chat_service,
         "ChatOpenAI",
         lambda **kwargs: RunnableLambda(fake_llm),
     )
-    chat_service._get_rag_chain.cache_clear()
+    chat_service._load_rag_chunks.cache_clear()
+    chat_service._get_rag_pipeline.cache_clear()
 
     try:
-        retriever, answer_chain = chat_service._get_rag_chain()
+        retriever, answer_chain, chunks = chat_service._get_rag_pipeline()
         documents = retriever.invoke("How much annual leave is available?")
         reply = answer_chain.invoke(
             {
@@ -244,10 +236,12 @@ def test_rag_chain_uses_retrieved_document_context(monkeypatch, tmp_path: Path):
             }
         )
     finally:
-        chat_service._get_rag_chain.cache_clear()
+        chat_service._get_rag_pipeline.cache_clear()
+        chat_service._load_rag_chunks.cache_clear()
 
     assert reply == "The policy answer."
     assert "Page 7:\nAnnual leave allowance is 20 days." in captured_prompt["text"]
+    assert chunks[0].metadata["chunk_id"].startswith("hr-policy-p7-")
     assert "Do not use outside knowledge" in " ".join(
         captured_prompt["text"].split()
     )
